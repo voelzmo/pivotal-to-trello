@@ -8,18 +8,18 @@ module PivotalToTrello
     def initialize(key, token)
       Trello.configure do |config|
         config.developer_public_key = key
-        config.member_token         = token
+        config.member_token = token
       end
     end
 
     # Creates a card in the given list if one with the same name doesn't already exist.
     def create_card(list_id, pivotal_story)
-      card   = get_card(list_id, pivotal_story.name, pivotal_story.description)
+      card = get_card(list_id, pivotal_story.name, pivotal_story.description)
       card ||= begin
         puts "Creating a card for #{pivotal_story.story_type} '#{pivotal_story.name}'."
         card = Trello::Card.create(
-          :name    => pivotal_story.name,
-          :desc    => pivotal_story.description,
+          :name => pivotal_story.name,
+          :desc => pivotal_story.description,
           :list_id => list_id
         )
 
@@ -30,9 +30,9 @@ module PivotalToTrello
         card
       end
 
-      key                  = card_hash(card.name, card.desc)
-      @cards             ||= {}
-      @cards[list_id]    ||= {}
+      key = card_hash(card.name, card.desc)
+      @cards ||= {}
+      @cards[list_id] ||= {}
       @cards[list_id][key] = card
     end
 
@@ -47,13 +47,13 @@ module PivotalToTrello
     # Returns a hash of available lists for the given board, keyed on board ID.
     def list_choices(board_id)
       # Cache the list to improve performance.
-      @lists           ||= {}
+      @lists ||= {}
       @lists[board_id] ||= begin
         choices = Trello::Board.find(board_id).lists.inject({}) do |hash, list|
           hash[list.id] = list.name
           hash
         end
-        choices        = Hash[choices.sort_by { |_, v| v }]
+        choices = Hash[choices.sort_by { |_, v| v }]
         choices[false] = "[don't import these stories]"
         choices
       end
@@ -63,7 +63,7 @@ module PivotalToTrello
 
     # Returns a list of all cards in the given list, keyed on name.
     def cards_for_list(list_id)
-      @cards          ||= {}
+      @cards ||= {}
       @cards[list_id] ||= Trello::List.find(list_id).cards.inject({}) do |hash, card|
         hash[card_hash(card.name, card.desc)] = card
         hash
@@ -73,35 +73,41 @@ module PivotalToTrello
     end
 
     # Adds the given label to the card.
-    def add_label(card, label)
+    def add_label(card, label_id, label_name)
+      label = Trello::Label.find(label_id)
+      label.name=label_name
+      label.save
       card.add_label(label) unless card.labels.collect { |label| label.color }.include?(label)
     end
 
     # Returns a list of colors that can be used to label cards.
-    def label_choices
-      {
-        'blue'   => 'Blue',
-        'green'  => 'Green',
-        'orange' => 'Orange',
-        'purple' => 'Purple',
-        'red'    => 'Red',
-        'yellow' => 'Yellow',
-        false    => '[none]'
-      }
+    def label_choices(board_id)
+      choices = Trello::Board.find(board_id).labels.inject({}) do |hash, label|
+        hash[label.id] = label.color
+        hash
+      end
+      choices = Hash[choices.sort_by do |_, v|
+        v unless v.nil?
+        ''
+      end]
+
+      choices[false] = '[no label]'
+
+      choices
     end
 
     private
 
-      # Returns a unique identifier for this list/name/description combination.
-      def card_hash(name, description)
-        Digest::SHA1.hexdigest("#{name}_#{description}")
-      end
+    # Returns a unique identifier for this list/name/description combination.
+    def card_hash(name, description)
+      Digest::SHA1.hexdigest("#{name}_#{description}")
+    end
 
-      # Returns a card with the given name and description if it exists in the given list, nil otherwise.
-      def get_card(list_id, name, description)
-        key = card_hash(name, description)
-        cards_for_list(list_id)[key] if !cards_for_list(list_id)[key].nil?
-      end
+    # Returns a card with the given name and description if it exists in the given list, nil otherwise.
+    def get_card(list_id, name, description)
+      key = card_hash(name, description)
+      cards_for_list(list_id)[key] if !cards_for_list(list_id)[key].nil?
+    end
 
   end
 end

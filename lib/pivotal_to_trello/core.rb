@@ -54,7 +54,7 @@ module PivotalToTrello
 
         if list_id
           card = trello.create_card(list_id, story)
-          trello.add_label(card, label) unless label.nil?
+          trello.add_label(card, label, story.story_type) unless label.nil?
         end
       end
     end
@@ -80,10 +80,10 @@ module PivotalToTrello
         options.chore_list_id      = prompt_selection("Which Trello list would you like to put 'backlog' chores into?", trello.list_choices(options.trello_board_id))
         options.feature_list_id    = prompt_selection("Which Trello list would you like to put 'backlog' features into?", trello.list_choices(options.trello_board_id))
         options.release_list_id    = prompt_selection("Which Trello list would you like to put 'backlog' releases into?", trello.list_choices(options.trello_board_id))
-        options.bug_label          = prompt_selection('What color would you like to label bugs with?', trello.label_choices)
-        options.feature_label      = prompt_selection('What color would you like to label features with?', trello.label_choices)
-        options.chore_label        = prompt_selection('What color would you like to label chores with?', trello.label_choices)
-        options.release_label      = prompt_selection('What color would you like to label releases with?', trello.label_choices)
+        options.bug_label          = prompt_selection('What color would you like to label bugs with?', trello.label_choices(options.trello_board_id))
+        options.feature_label      = prompt_selection('What color would you like to label features with?', trello.label_choices(options.trello_board_id))
+        options.chore_label        = prompt_selection('What color would you like to label chores with?', trello.label_choices(options.trello_board_id))
+        options.release_label      = prompt_selection('What color would you like to label releases with?', trello.label_choices(options.trello_board_id))
       end
 
       # Prompts the user to select an option from the given list of choices.
